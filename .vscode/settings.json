@@ -1,0 +1,7 @@
+{
+  "python.pythonPath": "C:/TeamSuggest/env/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "C:/TeamSuggest/env/Lib/site-packages"
+  ]
+
+}

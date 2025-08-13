@@ -1,5 +1,6 @@
 import React, {useState} from 'react'
 import axios from 'axios';
+import { Navigate } from 'react-router-dom';
 
 const Register = () => {
   const [username, setUsername] = useState('');
@@ -21,6 +22,10 @@ const Register = () => {
       console.log('Registration successful');
       setErrors({}); 
       setSuccess(true);
+      Navigate('/login'); // Redirect to login after successful registration
+      setUsername('');
+      setEmail('');
+      setPassword('');
     }
     catch (error) {
       setErrors(error.response.data);
@@ -50,7 +55,7 @@ const Register = () => {
                     <small>{errors.password &&<div className='text-danger'>{errors.password}</div>}</small>
                   </div>
                   {success && <div className='alert alert-success'>Registration Sucess</div>}
-                  {loading?(<button type="submit" className='btn btn-info d-block mx-auto'>Please wait</button>):(
+                  {loading?(<button type="submit" className='btn btn-info d-block mx-auto' disabled>Please wait..</button>):(
                     <button type="submit" className='btn btn-info d-block mx-auto'>Register</button>
                   )}
                     
