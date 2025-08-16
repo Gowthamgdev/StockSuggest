@@ -128,6 +128,68 @@ class StockPredictionAPIView(APIView):
             #R-squared (R2) score
             r2= r2_score(y_test, y_predicted)
 
+            # Sggestion
+            def prepare_data(data, n_steps=100):
+                X = []
+                for i in range(n_steps, len(data)):
+                    X.append(data[i-n_steps:i, 0])
+                X = np.array(X)
+                X = np.reshape(X, (X.shape[0], X.shape[1], 1))
+                return X
+            def generate_suggestions(df, model, n_steps=100):
+                close_prices = df['Close'].values
+                close_prices = close_prices.reshape(-1, 1)
+                X_test = prepare_data(close_prices, n_steps)
+
+                predicted_prices = model.predict(X_test)
+                last_known_prices = close_prices[n_steps:]
+                pct_changes = ((predicted_prices.flatten() - last_known_prices.flatten()) / last_known_prices.flatten()) * 100
+
+                total_suggestion = np.mean(pct_changes)
+                long_term_window = 60
+                short_term_window = 20
+                intraday_window = 1
+
+                suggestions = {
+                    'total_percentage': total_suggestion,
+                    'long_term_percentage': np.mean(pct_changes[-long_term_window:]),
+                    'short_term_percentage': np.mean(pct_changes[-short_term_window:]),
+                    'intraday_percentage': pct_changes[-intraday_window]
+                }
+                return suggestions
+            raw = generate_suggestions(df, model, n_steps=100)
+            def format_suggestions1(raw):
+                # Convert np.float64 -> float
+                total = float(raw['total_percentage'])
+                long_term = float(raw['long_term_percentage'])
+                short_term = float(raw['short_term_percentage'])
+                intraday = float(raw['intraday_percentage'])
+
+                # 1) Make all values positive (absolute values)
+                # total = abs(total)
+                long_term = abs(long_term)
+                short_term = abs(short_term)
+                intraday = abs(intraday)
+                total=(long_term+short_term+intraday)/3.0
+
+                # 2) Apply your manipulations (subtract 10 from short_term, 20 from intraday)
+                short_term = short_term - 10.19
+                intraday = intraday - 17.57
+
+                # 3) Optional: clamp to a minimum of 0 so you don't get negative after adjustments
+                short_term = max(short_term, 0.0)
+                intraday = max(intraday, 0.0)
+
+                # 4) Format as percent strings
+                return {
+                    "total_percentage": f"{total:.2f}%",
+                    "long_term_percentage": f"{long_term:.2f}%",
+                    "short_term_percentage": f"{short_term:.2f}%",
+                    "intraday_percentage": f"{intraday:.2f}%"
+                }
+            
+            format_suggestions1(raw)
+
 
 
             return Response({
@@ -139,4 +201,9 @@ class StockPredictionAPIView(APIView):
                 'mse': mse,
                 'rmse': rmse,
                 'r2': r2,
+                'total_percentage': format_suggestions1(raw)['total_percentage'],
+                'long_term_percentage': format_suggestions1(raw)['long_term_percentage'],
+                'short_term_percentage': format_suggestions1(raw)['short_term_percentage'],
+                'intraday_percentage': format_suggestions1(raw)['intraday_percentage']
+                
                 })
