@@ -1,13 +1,13 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
-from .serializers import StockPredictionSerializer
+from .serializers import StockPredictionSerializer, StockReturnsSerializer
 from rest_framework.response import Response
 from rest_framework import status
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from django.conf import settings
 from .utils import save_plot
@@ -190,6 +190,16 @@ class StockPredictionAPIView(APIView):
             
             format_suggestions1(raw)
 
+            symbol= ticker
+            stock = yf.Ticker(symbol)
+            data = stock.info
+
+            price= data['currentPrice']
+            marketcap=data['marketCap']
+            stock_info = yf.Ticker(ticker).info
+            stock_name = stock_info.get("longName", ticker)
+            if marketcap:
+                marketcap = round(marketcap / 1_000_000_000_000, 5)  # Trillions
 
 
             return Response({
@@ -204,6 +214,40 @@ class StockPredictionAPIView(APIView):
                 'total_percentage': format_suggestions1(raw)['total_percentage'],
                 'long_term_percentage': format_suggestions1(raw)['long_term_percentage'],
                 'short_term_percentage': format_suggestions1(raw)['short_term_percentage'],
-                'intraday_percentage': format_suggestions1(raw)['intraday_percentage']
+                'intraday_percentage': format_suggestions1(raw)['intraday_percentage'],
+                'price':price,
+                'marketcap':marketcap,
+                'name': stock_name
+                
+
                 
                 })
+
+
+class StockReturnsAPIView(APIView):
+    def post(self, request):
+        serializer = StockReturnsSerializer(data=request.data)
+        if serializer.is_valid():
+            ticker1 = serializer.validated_data['ticker1']
+            year = serializer.validated_data['year']
+
+            end_date = datetime.today()
+            start_date = end_date - timedelta(days=year*365)
+
+            # Download stock data (auto_adjust=True is default now, so no warning)
+            data = yf.download(ticker1, start=start_date, end=end_date, auto_adjust=True)
+
+            if data.empty:
+                return Response({"error": f"No data found for the given ticker {ticker1} in last {year} years",
+                                 'status': status.HTTP_404_NOT_FOUND})
+
+            start_price = data['Close'].iloc[0].item()
+            end_price = data['Close'].iloc[-1].item()
+
+            percentage_return = ((end_price - start_price) / start_price) * 100.
+
+            return Response({
+                'returns': f"{percentage_return:.2f}%"
+            })
+        return Response(serializer.errors, status=400)
+
