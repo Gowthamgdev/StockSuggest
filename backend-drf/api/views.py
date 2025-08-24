@@ -173,8 +173,8 @@ class StockPredictionAPIView(APIView):
                 total=(long_term+short_term+intraday)/3.0
 
                 # 2) Apply your manipulations (subtract 10 from short_term, 20 from intraday)
-                short_term = short_term - 10.19
-                intraday = intraday - 17.57
+                short_term = short_term - 40.19
+                intraday = intraday - 77.57
 
                 # 3) Optional: clamp to a minimum of 0 so you don't get negative after adjustments
                 short_term = max(short_term, 0.0)
@@ -246,8 +246,35 @@ class StockReturnsAPIView(APIView):
 
             percentage_return = ((end_price - start_price) / start_price) * 100.
 
+            data['Daily Return'] = data['Close'].pct_change()
+            volatility = data['Daily Return'].std() * np.sqrt(252) * 100 
+
+            #plot
+            plt.switch_backend('AGG')
+            plt.figure(figsize=(12,6))
+
+            # Stock price trend
+            plt.subplot(2,1,1)
+            plt.plot(data['Close'], label=f"{ticker1} Price")
+            plt.title(f"{ticker1} Stock Price over {year} Year(s)")
+            plt.xlabel("Date")
+            plt.ylabel("Price")
+            plt.legend()
+            
+            # Daily returns histogram
+            plt.subplot(2,1,2)
+            plt.hist(data['Daily Return'].dropna(), bins=50, alpha=0.7)
+            plt.title(f"{ticker1} Daily Returns Distribution")
+            plt.xlabel("Daily Return")
+            plt.ylabel("Frequency")
+            
+            plt.tight_layout()
+            plot_img_path = f'{ticker1}_returnsof{year}.png'
+            plot_returns_year = save_plot(plot_img_path)
             return Response({
-                'returns': f"{percentage_return:.2f}%"
+                'returns': f"{percentage_return:.2f}%",
+                'risk':f"{volatility:.2f}",
+                'plot_return':plot_returns_year
             })
         return Response(serializer.errors, status=400)
 
