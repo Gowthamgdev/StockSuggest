@@ -14,8 +14,11 @@ from .utils import save_plot
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import load_model
 from sklearn.metrics import mean_squared_error, r2_score
+from django.conf import settings
+from openai import OpenAI
+import json
+import re
 
-# Create your views here.
 
 class StockPredictionAPIView(APIView):
     def post(self, request):
@@ -271,10 +274,66 @@ class StockReturnsAPIView(APIView):
             plt.tight_layout()
             plot_img_path = f'{ticker1}_returnsof{year}.png'
             plot_returns_year = save_plot(plot_img_path)
+
+            ###################
+            # ===== AI Summary using OpenRouter =====
+            # try:
+            #     client = OpenAI(
+            #         base_url="https://openrouter.ai/api/v1",
+            #         api_key=settings.OPENROUTER_API_KEY
+            #     )
+
+            #     prompt = (
+            #         f"Provide a  10-20 line summary of stock performance for {ticker1} "
+            #         f"over the last {year} year(s). Include trends, risks, and investment insights. Write it as a professional summary with no titles, no headings, no bold text, and no introductions. Just the summary sentences."
+            #     )
+
+            #     ai_response = client.chat.completions.create(
+            #         model="google/gemini-2.0-flash-exp:free",  # or another OpenRouter-supported model
+            #         messages=[
+            #             {"role": "system", "content": "You are an AI assistant that summarizes stock insights."},
+            #             {"role": "user", "content": prompt}
+            #         ]
+            #     )
+            #     summary_text = ai_response.choices[0].message.content.strip()
+            # except Exception as e:
+            #     summary_text = f"Summary could not be generated: {str(e)}"
+
+            try:
+                client = OpenAI(
+                    base_url="https://openrouter.ai/api/v1",
+                    api_key=settings.OPENROUTER_API_KEY
+                )
+
+                prompt = (
+                    f"Identify the most important stock-moving events for {ticker1} "
+                    f"over the last {year} year(s). Focus on MAJOR movements "
+                    f"(e.g., product launches, regulatory changes, market crashes, earnings surprises). "
+                    f"Also, include the 3-5 most recent news headlines (with dates). "
+                    f"Output everything as a clean HTML table with the following columns: "
+                    f"Year, Date, Event/News. Do not include any text outside the table."
+                )
+
+                ai_response = client.chat.completions.create(
+                    model="google/gemini-2.0-flash-exp:free",
+                    messages=[
+                        {"role": "system", "content": "You are a financial analyst. Only return an HTML table."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=700,
+                    temperature=0.3
+                )
+
+                table_html = ai_response.choices[0].message.content.strip()
+
+            except Exception as e:
+                table_html = f"<p>Error generating summary: {str(e)}</p>"
+
             return Response({
                 'returns': f"{percentage_return:.2f}%",
                 'risk':f"{volatility:.2f}",
-                'plot_return':plot_returns_year
+                'plot_return':plot_returns_year,
+                'summary': table_html
             })
         return Response(serializer.errors, status=400)
 
