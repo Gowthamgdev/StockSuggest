@@ -17,7 +17,7 @@ axiosInstance.interceptors.request.use(
         if(acessToken){
            config.headers['Authorization']=`Bearer ${acessToken}` 
         }
-        console.log('Request made with ', config);
+        // console.log('Request made with ', config);
         return config;
     },
     function(error){

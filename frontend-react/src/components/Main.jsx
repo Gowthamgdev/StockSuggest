@@ -10,7 +10,7 @@ const Main = () => {
     <>
         <div className='container'>
             <div className='p-5 text-center bg-light-dark'>
-                <h1 className='text-light'>StockSuggest</h1>
+                <h1 className='text-light'>SuggestStock</h1>
                 <p className='text-light lead'>This website built by Gowtham</p>
                 
                 {isLoggedIn ? (

@@ -19,12 +19,15 @@ const Header = () => {
   
   return (
     <>
+    {/* <div className="mb3"> */}
     <nav className='navbar container pt-3 pb-3 align-items-start'>
-        <Link className='navbar-brand text-light' to="/">StockSuggest</Link>
+        <Link className='navbar-brand text-light' to="/">SuggestStock</Link>
 
         <div>
           {isLoggedIn ? (
             <>
+            <Button text='Dashboard1' class="btn-info" url="/dashboard1"/>
+            &nbsp;
             <Button text='Dashboard' class="btn-info" url="/dashboard"/>
             &nbsp;
             <button className='btn btn-danger'onClick={handleLogout}>Logout</button>
@@ -37,6 +40,9 @@ const Header = () => {
           </>)}
         </div>
     </nav>
+    {/* <hr class="border border-secondary-subtle" />
+    </div> */}
+
     </>
   )
 }

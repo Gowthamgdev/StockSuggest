@@ -186,4 +186,6 @@ psd
 thumb
 sketch
 
+Resources/
+
 # End of https://www.toptal.com/developers/gitignore/api/django,react
